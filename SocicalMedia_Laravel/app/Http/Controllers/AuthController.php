@@ -10,31 +10,34 @@ use App\Models\User;
 class AuthController extends Controller
 {
     public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'username' => 'required|string|unique:users',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:6',
-            'phone' => 'nullable|string',
-            'profilepicture' => 'nullable|string',
-            'two_factor_enabled' => 'nullable|boolean',
-        ]);
+{
+    $validator = Validator::make($request->all(), [
+        'username' => 'required|string|unique:users',
+        'email' => 'required|email|unique:users',
+        'password' => 'required|string|min:6',
+        'phone' => 'nullable|string',
+        'profilepicture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048', // tối đa 2MB
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $user = User::create([
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'profilepicture' => $request->profilepicture,
-            'two_factor_enabled' => $request->two_factor_enabled ?? false,
-        ]);
-
-        return response()->json(['message' => 'Đăng ký thành công', 'user' => $user]);
+    if ($validator->fails()) {
+        return response()->json(['message' => 'Dữ liệu không hợp lệ', 'errors' => $validator->errors()], 422);
     }
+
+    $profilePicturePath = null;
+    if ($request->hasFile('profilepicture')) {
+        $profilePicturePath = $request->file('profilepicture')->store('images', 'public');
+    }
+
+    $user = User::create([
+        'username' => $request->username,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'phone' => $request->phone,
+        'profilepicture' => $profilePicturePath,
+    ]);
+
+    return response()->json(['message' => 'Đăng ký thành công', 'user' => $user]);
+}
 
     public function login(Request $request)
     {
@@ -52,9 +55,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'profilepicture' => $user->profilepicture,
                 'phone' => $user->phone,
-                'two_factor_enabled' => $user->two_factor_enabled,
             ]
         ]);
     }
 }
-

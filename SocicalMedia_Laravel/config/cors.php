@@ -15,9 +15,9 @@ return [
     |
     */
 
-'paths' => ['api/*', 'sanctum/csrf-cookie'],
+'paths' => ['api/*'],
+'allowed_origins' => ['http://localhost:3000'],
 'allowed_methods' => ['*'],
-'allowed_origins' => ['http://localhost:3000'], // Địa chỉ ReactJS
 'allowed_headers' => ['*'],
 'supports_credentials' => true,
 
