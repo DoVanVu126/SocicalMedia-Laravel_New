@@ -65,5 +65,66 @@ class PostController extends Controller
         ], 500);
     }
 }
+// PostController.php
+public function destroy($id)
+{
+    $post = Post::find($id);
+
+    if (!$post) {
+        return response()->json(['message' => 'Bài viết không tồn tại'], 404);
+    }
+
+    // Xóa ảnh và video nếu có
+    if ($post->imageurl) {
+        Storage::disk('public')->delete('images/' . $post->imageurl);
+    }
+    if ($post->videourl) {
+        Storage::disk('public')->delete('videos/' . $post->videourl);
+    }
+
+    $post->delete();
+
+    return response()->json(['message' => 'Bài viết đã được xóa'], 200);
+}
+
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'content' => 'required|string',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+        'video' => 'nullable|mimes:mp4,avi,mkv|max:10240',
+    ]);
+
+    $post = Post::find($id);
+
+    if (!$post) {
+        return response()->json(['message' => 'Bài viết không tồn tại'], 404);
+    }
+
+    try {
+        // Xóa ảnh cũ nếu có ảnh mới
+        if ($request->hasFile('image')) {
+            if ($post->imageurl) {
+                Storage::disk('public')->delete('images/' . $post->imageurl);
+            }
+            $post->imageurl = basename($request->file('image')->store('images', 'public'));
+        }
+
+        // Xóa video cũ nếu có video mới
+        if ($request->hasFile('video')) {
+            if ($post->videourl) {
+                Storage::disk('public')->delete('videos/' . $post->videourl);
+            }
+            $post->videourl = basename($request->file('video')->store('videos', 'public'));
+        }
+
+        $post->content = $request->content;
+        $post->save();
+
+        return response()->json(['message' => 'Cập nhật bài viết thành công', 'post' => $post], 200);
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'Có lỗi xảy ra', 'error' => $e->getMessage()], 500);
+    }
+}
 
 }
