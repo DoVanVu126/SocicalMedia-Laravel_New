@@ -16,17 +16,15 @@ class AuthController extends Controller
         'email' => 'required|email|unique:users',
         'password' => 'required|string|min:6',
         'phone' => 'nullable|string',
-        'profilepicture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048', // tối đa 2MB
+        // Không cần kiểm tra profilepicture vì mặc định sẽ là default
     ]);
 
     if ($validator->fails()) {
         return response()->json(['message' => 'Dữ liệu không hợp lệ', 'errors' => $validator->errors()], 422);
     }
 
-    $profilePicturePath = null;
-    if ($request->hasFile('profilepicture')) {
-        $profilePicturePath = $request->file('profilepicture')->store('images', 'public');
-    }
+    // Gán ảnh mặc định
+    $profilePicturePath = 'default-avatar.png';
 
     $user = User::create([
         'username' => $request->username,
