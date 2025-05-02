@@ -15,13 +15,18 @@ class Post extends Model
         'content',
         'imageurl',
         'videourl',
-        'status'
+        'status',
+        'reaction_summary',
     ];
 
     // Quan hệ với User
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function reactions()
+    {
+        return $this->hasMany(Reaction::class);
     }
 }
 
