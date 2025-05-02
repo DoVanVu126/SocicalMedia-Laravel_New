@@ -3,17 +3,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
-class Reaction extends Model
+class Notification extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'post_id', 'type'];
 
-    public function post()
-    {
-        return $this->belongsTo(Post::class);
-    }
+    protected $fillable = ['notification_content', 'is_read'];
 
+    // Quan hệ với User
     public function user()
     {
         return $this->belongsTo(User::class);
