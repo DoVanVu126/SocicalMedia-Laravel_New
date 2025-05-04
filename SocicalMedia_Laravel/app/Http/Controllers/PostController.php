@@ -9,28 +9,33 @@ use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with('user')->orderBy('created_at', 'desc')->get();
-
+        $userId = $request->query('user_id'); // Lấy user_id từ query param
+    
+        $posts = Post::with(['user', 'reactions'])->orderBy('created_at', 'desc')->get();
+    
         if ($posts->isEmpty()) {
             return response()->json(['message' => 'Không có bài viết nào'], 200);
         }
-
+    
         $posts->transform(function ($post) use ($userId) {
             $post->imageurl = $post->imageurl ? asset($post->imageurl) : null;
             $post->videourl = $post->videourl ? asset($post->videourl) : null;
-
+    
             $reactionCounts = $post->reactions->groupBy('type')->map->count();
             $post->reaction_summary = $reactionCounts;
-            $post->save();
-            // Thêm reaction của người dùng (nếu có user_id)
+    
+            // Lấy reaction của người dùng (nếu có user_id)
             $post->user_reaction = $userId ? $post->reactions->firstWhere('user_id', $userId) : null;
+    
             return $post;
         });
-
+    
         return response()->json($posts, 200);
     }
+    
+    
 
     public function store(Request $request)
 {
