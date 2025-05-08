@@ -11,15 +11,27 @@ class ReactionController extends Controller
         $request->validate([
             'post_id' => 'required|exists:posts,id',
             'type' => 'required|in:like,love,haha,wow,sad,angry',
+            'user_id' => 'required|exists:users,id',
         ]);
 
-        $userId = auth()->id() ?? 2; // Tạm dùng user ID = 2 nếu chưa có auth
+        $reaction = Reaction::create([
+            'post_id' => $request->post_id,
+            'user_id' => $request->user_id,
+            'type'    => $request->type,
+        ]);
 
-        $reaction = Reaction::updateOrCreate(
-            ['post_id' => $request->post_id, 'user_id' => $userId],
-            ['type' => $request->type]
-        );
+        return response()->json($reaction, 201);
+    }
 
-        return response()->json($reaction);
+    // Optional: Lấy tất cả reaction theo post
+    public function index($postId)
+    {
+        $reactions = Reaction::where('post_id', $postId)
+            ->with('user:id,username')
+            ->latest()
+            ->get();
+
+        return response()->json($reactions);
     }
 }
+

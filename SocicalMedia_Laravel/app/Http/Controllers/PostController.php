@@ -12,30 +12,30 @@ class PostController extends Controller
     public function index(Request $request)
     {
         $userId = $request->query('user_id'); // Lấy user_id từ query param
-    
+
         $posts = Post::with(['user', 'reactions'])->orderBy('created_at', 'desc')->get();
-    
+
         if ($posts->isEmpty()) {
             return response()->json(['message' => 'Không có bài viết nào'], 200);
         }
-    
+
         $posts->transform(function ($post) use ($userId) {
             $post->imageurl = $post->imageurl ? asset($post->imageurl) : null;
             $post->videourl = $post->videourl ? asset($post->videourl) : null;
-    
+
             $reactionCounts = $post->reactions->groupBy('type')->map->count();
             $post->reaction_summary = $reactionCounts;
-    
+
             // Lấy reaction của người dùng (nếu có user_id)
             $post->user_reaction = $userId ? $post->reactions->firstWhere('user_id', $userId) : null;
-    
+
             return $post;
         });
-    
+
         return response()->json($posts, 200);
     }
-    
-    
+
+
 
     public function store(Request $request)
 {
@@ -173,12 +173,32 @@ public function update(Request $request, $id)
             return response()->json(['message' => 'Bài viết không tồn tại'], 404);
         }
 
+        // Thêm hoặc cập nhật phản ứng
         $reaction = Reaction::updateOrCreate(
             ['post_id' => $id, 'user_id' => $request->user_id],
             ['type' => $request->type]
         );
 
-        return response()->json(['message' => 'Đã phản ứng bài viết', 'reaction' => $reaction], 200);
+        // Tóm tắt tổng số phản ứng theo loại
+        $summary = Reaction::where('post_id', $id)
+            ->select('type', \DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+
+        // Đảm bảo tất cả các loại reaction có trong summary
+        $defaultSummary = ['like' => 0, 'love' => 0, 'haha' => 0, 'wow' => 0, 'sad' => 0, 'angry' => 0];
+        $summary = array_merge($defaultSummary, $summary);
+
+        // Cập nhật reaction_summary trong bảng posts (tùy chọn, nếu muốn lưu trực tiếp)
+        $post->reaction_summary = json_encode($summary);
+        $post->save();
+
+        return response()->json([
+            'message' => 'Đã phản ứng bài viết',
+            'user_reaction' => $reaction,
+            'reaction_summary' => $summary,
+        ]);
     }
 
     public function removeReaction(Request $request, $id)
@@ -197,7 +217,31 @@ public function update(Request $request, $id)
 
         $reaction->delete();
 
-        return response()->json(['message' => 'Đã xóa reaction'], 200);
+        // Lấy lại tổng kết sau khi xóa
+        $summary = Reaction::where('post_id', $id)
+            ->select('type', \DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+
+        // Đảm bảo tất cả các loại reaction có trong summary
+        $defaultSummary = ['like' => 0, 'love' => 0, 'haha' => 0, 'wow' => 0, 'sad' => 0, 'angry' => 0];
+        $summary = array_merge($defaultSummary, $summary);
+
+        // Cập nhật reaction_summary trong bảng posts (tùy chọn)
+        $post = Post::find($id);
+        $post->reaction_summary = json_encode($summary);
+        $post->save();
+
+        return response()->json([
+            'message' => 'Đã xóa reaction',
+            'user_reaction' => null,
+            'reaction_summary' => $summary,
+        ]);
     }
 }
+
+
+
+
 
