@@ -19,18 +19,10 @@ Route::post('/posts/{id}/react', [PostController::class, 'react']);
 Route::delete('/posts/{id}/react', [PostController::class, 'removeReaction']);
 Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
 Route::post('/posts/{postId}/comments', [CommentController::class, 'store']);
-<<<<<<< HEAD
-
 Route::get('notifications/{userId}', [NotificationController::class, 'index']);
 Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 Route::post('notifications/settings', [NotificationController::class, 'toggleSettings']);
 Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
-
-
-
-
-=======
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
->>>>>>> vu

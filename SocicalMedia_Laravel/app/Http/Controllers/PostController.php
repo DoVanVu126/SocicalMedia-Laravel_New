@@ -12,11 +12,7 @@ class PostController extends Controller
 {
     public function index(Request $request)
     {
-<<<<<<< HEAD
-        $userId = $request->query('user_id'); // Lấy user_id từ query param
-=======
         $userId = $request->query('user_id');
->>>>>>> vu
 
         $posts = Post::with(['user', 'reactions'])->orderBy('created_at', 'desc')->get();
 
@@ -25,10 +21,6 @@ class PostController extends Controller
         }
 
         $posts->transform(function ($post) use ($userId) {
-<<<<<<< HEAD
-            $post->imageurl = $post->imageurl ? asset($post->imageurl) : null;
-            $post->videourl = $post->videourl ? asset($post->videourl) : null;
-=======
             if ($post->imageurl) {
                 $post->imageurl = explode(',', $post->imageurl);
                 $post->imageurl = array_map(fn($img) => asset($img), $post->imageurl);
@@ -37,30 +29,18 @@ class PostController extends Controller
             }
 
             $post->videourl = $post->videourl ? asset(basename($post->videourl)) : null;
->>>>>>> vu
 
             $reactionCounts = $post->reactions->groupBy('type')->map->count();
             $post->reaction_summary = $reactionCounts;
 
-<<<<<<< HEAD
-            // Lấy reaction của người dùng (nếu có user_id)
-=======
->>>>>>> vu
             $post->user_reaction = $userId ? $post->reactions->firstWhere('user_id', $userId) : null;
 
             return $post;
         });
 
-<<<<<<< HEAD
-        return response()->json($posts, 200);
-    }
-
-
-=======
 
         return response()->json($posts, 200);
     }
->>>>>>> vu
 
     public function store(Request $request)
     {
@@ -193,7 +173,6 @@ class PostController extends Controller
         return response()->json(['message' => 'Post updated successfully']);
     }
 
-
     public function changeStatus(Request $request, $id)
     {
         $request->validate([
@@ -297,11 +276,3 @@ class PostController extends Controller
         ]);
     }
 }
-<<<<<<< HEAD
-
-
-
-
-
-=======
->>>>>>> vu
