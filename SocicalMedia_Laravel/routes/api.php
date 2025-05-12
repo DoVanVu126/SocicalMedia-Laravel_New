@@ -18,3 +18,5 @@ Route::post('/posts/{id}/react', [PostController::class, 'react']);
 Route::delete('/posts/{id}/react', [PostController::class, 'removeReaction']);
 Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
 Route::post('/posts/{postId}/comments', [CommentController::class, 'store']);
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
