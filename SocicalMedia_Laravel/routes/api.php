@@ -3,8 +3,11 @@
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\StoryController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserSearchController;
+use App\Http\Controllers\ReactionController;
 
 // Các route công khai
 Route::post('/register', [AuthController::class, 'register']);
@@ -27,5 +30,15 @@ Route::post('notifications/settings', [NotificationController::class, 'toggleSet
 Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
 
 
+//story
+Route::get('/stories', [StoryController::class, 'index']);
+Route::post('/stories', [StoryController::class, 'store']);
+Route::put('/stories/{id}', [StoryController::class, 'update']);
+Route::delete('/stories/{id}', [StoryController::class, 'destroy']);
 
 
+Route::get('/users/search', [UserSearchController::class, 'suggest']);
+Route::get('/users/{id}', [UserSearchController::class, 'getUser']);
+
+
+Route::get('/posts/{postId}/reactions', [ReactionController::class, 'index']);
