@@ -14,32 +14,46 @@ class PostController extends Controller
     {
         $userId = $request->query('user_id');
 
-        $posts = Post::with(['user', 'reactions'])->orderBy('created_at', 'desc')->get();
+        $posts = Post::with(['user', 'reactions'])
+            ->where(function ($query) use ($userId) {
+                $query->where('visibility', 'public');
+
+                if ($userId) {
+                    $query->orWhere(function ($q) use ($userId) {
+                        $q->where('visibility', 'private')->where('user_id', $userId);
+                    });
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         if ($posts->isEmpty()) {
             return response()->json(['message' => 'Không có bài viết nào'], 200);
         }
 
         $posts->transform(function ($post) use ($userId) {
-            if ($post->imageurl) {
-                $post->imageurl = explode(',', $post->imageurl);
-                $post->imageurl = array_map(fn($img) => asset($img), $post->imageurl);
-            } else {
-                $post->imageurl = [];
-            }
+            $post->imageurl = $post->imageurl
+                ? array_map(fn($img) => asset('storage/images/' . $img), explode(',', $post->imageurl))
+                : [];
 
-            $post->videourl = $post->videourl ? asset(basename($post->videourl)) : null;
+            $post->videourl = $post->videourl ? asset('storage/videos/' . $post->videourl) : null;
 
             $reactionCounts = $post->reactions->groupBy('type')->map->count();
             $post->reaction_summary = $reactionCounts;
-
             $post->user_reaction = $userId ? $post->reactions->firstWhere('user_id', $userId) : null;
 
             return $post;
         });
 
-
         return response()->json($posts, 200);
+    }
+
+    public function show($id)
+    {
+        $post = Post::with('reactions')->find($id);
+        if (!$post) return response()->json(['message' => 'Không tìm thấy bài viết'], 404);
+
+        return response()->json($post);
     }
 
     public function store(Request $request)
@@ -47,82 +61,46 @@ class PostController extends Controller
         $request->validate([
             'content' => 'required|string',
             'user_id' => 'required|exists:users,id',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:51200',
-            'video' => 'nullable|mimes:mp4,avi,mkv|max:1002400',
+            'visibility' => 'in:public,private',
+            'image.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'video' => 'nullable|mimes:mp4,avi,mkv|max:10240',
         ]);
 
         try {
-            // Lưu nhiều ảnh
+            // Lưu ảnh (nhiều ảnh)
             $imagePaths = [];
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
-                    $imagePaths[] = basename($image->store('images', 'public'));
+            if ($request->hasFile('image')) {
+                foreach ($request->file('image') as $img) {
+                    $filename = Str::random(20) . '.' . $img->getClientOriginalExtension();
+                    $img->storeAs('images', $filename, 'public');
+                    $imagePaths[] = $filename;
                 }
             }
 
-            // Gộp thành chuỗi nếu cần (cho TEXT)
-            $imageString = implode(',', $imagePaths); // lưu chuỗi: img1.jpg,img2.png,...
+            $imageString = implode(',', $imagePaths);
 
-            // Lưu video (nếu có)
-            $videoPath = $request->hasFile('video')
-                ? basename($request->file('video')->store('videos', 'public'))
-                : null;
+            // Lưu video
+            $videoPath = null;
+            if ($request->hasFile('video')) {
+                $video = $request->file('video');
+                $videoName = Str::random(20) . '.' . $video->getClientOriginalExtension();
+                $video->storeAs('videos', $videoName, 'public');
+                $videoPath = $videoName;
+            }
 
-            // Tạo bài viết
             $post = Post::create([
                 'user_id' => $request->user_id,
                 'content' => $request->content,
-                'imageurl' => $imageString, // chỉ là TEXT
+                'imageurl' => $imageString,
                 'videourl' => $videoPath,
-                'status' => 'publish',
+                'status' => 'draft',
+                'visibility' => $request->visibility ?? 'public',
             ]);
 
-            return response()->json([
-                'message' => 'Bài viết đã được tạo',
-                'post' => $post,
-            ], 201);
+            return response()->json(['message' => 'Bài viết đã được tạo', 'post' => $post], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Có lỗi xảy ra khi tạo bài viết',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Có lỗi xảy ra khi tạo bài viết', 'error' => $e->getMessage()], 500);
         }
-    }
-
-
-    public function destroy($id)
-    {
-        // Tìm bài post
-        $post = Post::find($id);
-
-        if (!$post) {
-            return response()->json(['message' => 'Bài viết không tồn tại'], 404);
-        }
-
-        // Xóa tất cả bình luận của bài post này
-        $post->comments()->delete();
-
-        // Xóa ảnh và video nếu có
-        if ($post->imageurl) {
-            Storage::disk('public')->delete('images/' . $post->imageurl);
-        }
-        if ($post->videourl) {
-            Storage::disk('public')->delete('videos/' . $post->videourl);
-        }
-
-        // Xóa bài post
-        $post->delete();
-
-        return response()->json(['message' => 'Bài viết và bình luận đã được xóa'], 200);
-    }
-
-    // PostController.php
-    public function show($id)
-    {
-        $post = Post::find($id);
-        if (!$post) return response()->json(['message' => 'Not found'], 404);
-
-        return response()->json($post);
     }
 
     public function update(Request $request, $id)
@@ -130,15 +108,11 @@ class PostController extends Controller
         $post = Post::findOrFail($id);
         $post->content = $request->input('content');
 
-        // Lấy danh sách ảnh cũ (nếu có)
         $existingImages = $post->imageurl ? explode(',', $post->imageurl) : [];
 
-        // Lưu ảnh mới nếu có
         $newImages = [];
         if ($request->hasFile('image')) {
-            $imageFiles = $request->file('image');
-            $imageFiles = is_array($imageFiles) ? $imageFiles : [$imageFiles];
-
+            $imageFiles = is_array($request->file('image')) ? $request->file('image') : [$request->file('image')];
             foreach ($imageFiles as $imgFile) {
                 $filename = Str::random(20) . '.' . $imgFile->getClientOriginalExtension();
                 $imgFile->storeAs('images', $filename, 'public');
@@ -146,10 +120,8 @@ class PostController extends Controller
             }
         }
 
-        // Gộp ảnh cũ + ảnh mới
         $post->imageurl = implode(',', array_merge($existingImages, $newImages));
 
-        // Xử lý xóa video cũ nếu được yêu cầu
         if ($request->has('remove_video') && $request->remove_video == '1') {
             if ($post->videourl) {
                 Storage::disk('public')->delete('videos/' . $post->videourl);
@@ -157,7 +129,6 @@ class PostController extends Controller
             }
         }
 
-        // Lưu video mới nếu có
         if ($request->hasFile('video')) {
             if ($post->videourl) {
                 Storage::disk('public')->delete('videos/' . $post->videourl);
@@ -169,10 +140,44 @@ class PostController extends Controller
         }
 
         $post->save();
-  
-        return response()->json(['message' => 'Post updated successfully']);
+
+        return response()->json(['message' => 'Bài viết đã được cập nhật']);
     }
 
+    public function destroy($id)
+    {
+        $post = Post::find($id);
+        if (!$post) {
+            return response()->json(['message' => 'Bài viết không tồn tại'], 404);
+        }
+
+        // Xóa ảnh
+        if ($post->imageurl) {
+            foreach (explode(',', $post->imageurl) as $img) {
+                Storage::disk('public')->delete('images/' . $img);
+            }
+        }
+
+        // Xóa các comment liên quan (nếu có)
+        if (method_exists($post, 'comments')) {
+            $post->comments()->delete();
+        }
+
+
+        // Xóa video
+        if ($post->videourl) {
+            Storage::disk('public')->delete('videos/' . $post->videourl);
+        }
+
+        // Xóa bài viết
+        $post->delete();
+
+        //xóa reaction
+        Reaction::where('post_id', $id)->delete();
+
+
+        return response()->json(['message' => 'Bài viết đã được xóa']);
+    }
 
     public function changeStatus(Request $request, $id)
     {
@@ -187,7 +192,6 @@ class PostController extends Controller
             return response()->json(['message' => 'Bài viết không tồn tại'], 404);
         }
 
-        // Kiểm tra quyền (tùy chọn, nếu cần)
         if ($post->user_id !== $request->user_id) {
             return response()->json(['message' => 'Bạn không có quyền thay đổi trạng thái bài viết này'], 403);
         }
@@ -215,7 +219,23 @@ class PostController extends Controller
             ['type' => $request->type]
         );
 
-        return response()->json(['message' => 'Đã phản ứng bài viết', 'reaction' => $reaction], 200);
+        $summary = Reaction::where('post_id', $id)
+            ->select('type', \DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+
+        $defaultSummary = ['like' => 0, 'love' => 0, 'haha' => 0, 'wow' => 0, 'sad' => 0, 'angry' => 0];
+        $summary = array_merge($defaultSummary, $summary);
+
+        $post->reaction_summary = json_encode($summary);
+        $post->save();
+
+        return response()->json([
+            'message' => 'Đã phản ứng bài viết',
+            'user_reaction' => $reaction,
+            'reaction_summary' => $summary,
+        ]);
     }
 
     public function removeReaction(Request $request, $id)
@@ -234,6 +254,23 @@ class PostController extends Controller
 
         $reaction->delete();
 
-        return response()->json(['message' => 'Đã xóa reaction'], 200);
+        $summary = Reaction::where('post_id', $id)
+            ->select('type', \DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+
+        $defaultSummary = ['like' => 0, 'love' => 0, 'haha' => 0, 'wow' => 0, 'sad' => 0, 'angry' => 0];
+        $summary = array_merge($defaultSummary, $summary);
+
+        $post = Post::find($id);
+        $post->reaction_summary = json_encode($summary);
+        $post->save();
+
+        return response()->json([
+            'message' => 'Đã xóa reaction',
+            'user_reaction' => null,
+            'reaction_summary' => $summary,
+        ]);
     }
 }
