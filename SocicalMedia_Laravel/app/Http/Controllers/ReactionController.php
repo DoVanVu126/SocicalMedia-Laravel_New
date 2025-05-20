@@ -23,15 +23,13 @@ class ReactionController extends Controller
         return response()->json($reaction, 201);
     }
 
-    // Optional: Lấy tất cả reaction theo post
     public function index($postId)
     {
-        $reactions = Reaction::where('post_id', $postId)
-            ->with('user:id,username')
-            ->latest()
-            ->get();
+       $reactions = Reaction::where('post_id', $postId)
+        ->with('user:id,username,profilepicture')
+        ->latest()
+        ->get();
 
-        return response()->json($reactions);
+    return response()->json($reactions);
     }
 }
-

@@ -14,7 +14,18 @@ class PostController extends Controller
     {
         $userId = $request->query('user_id');
 
-        $posts = Post::with(['user', 'reactions'])->orderBy('created_at', 'desc')->get();
+        $posts = Post::with(['user', 'reactions'])
+            ->where(function ($query) use ($userId) {
+                $query->where('visibility', 'public');
+
+                if ($userId) {
+                    $query->orWhere(function ($q) use ($userId) {
+                        $q->where('visibility', 'private')->where('user_id', $userId);
+                    });
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         if ($posts->isEmpty()) {
             return response()->json(['message' => 'Không có bài viết nào'], 200);
@@ -32,7 +43,6 @@ class PostController extends Controller
 
             $reactionCounts = $post->reactions->groupBy('type')->map->count();
             $post->reaction_summary = $reactionCounts;
-
             $post->user_reaction = $userId ? $post->reactions->firstWhere('user_id', $userId) : null;
 
             return $post;
@@ -47,18 +57,79 @@ class PostController extends Controller
         $request->validate([
             'content' => 'required|string',
             'user_id' => 'required|exists:users,id',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:51200',
-            'video' => 'nullable|mimes:mp4,avi,mkv|max:1002400',
+            'visibility' => 'in:public,private',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'video' => 'nullable|mimes:mp4,avi,mkv|max:10240',
         ]);
 
         try {
-            // Lưu nhiều ảnh
-            $imagePaths = [];
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
-                    $imagePaths[] = basename($image->store('images', 'public'));
+            $imagePath = $request->hasFile('image')
+                ? basename($request->file('image')->store('images', 'public'))
+                : null;
+
+            $videoPath = $request->hasFile('video')
+                ? basename($request->file('video')->store('videos', 'public'))
+                : null;
+
+            $post = Post::create([
+                'user_id' => $request->user_id,
+                'content' => $request->content,
+                'imageurl' => $imagePath,
+                'videourl' => $videoPath,
+                'status' => 'draft',
+                'visibility' => $request->visibility ?? 'public',
+            ]);
+
+            return response()->json(['message' => 'Bài viết đã được tạo', 'post' => $post], 201);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Có lỗi xảy ra khi tạo bài viết', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'content' => 'required|string',
+            'visibility' => 'in:public,private',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'video' => 'nullable|mimes:mp4,avi,mkv|max:10240',
+        ]);
+
+        $post = Post::find($id);
+        if (!$post) {
+            return response()->json(['message' => 'Bài viết không tồn tại'], 404);
+        }
+
+        try {
+            if ($request->hasFile('image')) {
+                if ($post->imageurl) {
+                    Storage::disk('public')->delete('images/' . $post->imageurl);
                 }
+                $post->imageurl = basename($request->file('image')->store('images', 'public'));
             }
+
+            if ($request->hasFile('video')) {
+                if ($post->videourl) {
+                    Storage::disk('public')->delete('videos/' . $post->videourl);
+                }
+                $post->videourl = basename($request->file('video')->store('videos', 'public'));
+            }
+
+            $post->content = $request->content;
+            if ($request->filled('visibility')) {
+                $post->visibility = $request->visibility;
+            }
+
+            $post->save();
+
+            return response()->json(['message' => 'Cập nhật bài viết thành công', 'post' => $post], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Có lỗi xảy ra', 'error' => $e->getMessage()], 500);
+        }
+    }
+public function destroy($id)
+{
+    $post = Post::find($id);
 
             // Gộp thành chuỗi nếu cần (cho TEXT)
             $imageString = implode(',', $imagePaths); // lưu chuỗi: img1.jpg,img2.png,...
@@ -98,6 +169,7 @@ class PostController extends Controller
         if (!$post) {
             return response()->json(['message' => 'Bài viết không tồn tại'], 404);
         }
+
 
         // Xóa tất cả bình luận của bài post này
         $post->comments()->delete();

@@ -16,6 +16,7 @@ class Post extends Model
         'videourl',
         'status',
         'reaction_summary',
+        'visibility',
 
     ];
 
@@ -30,7 +31,7 @@ class Post extends Model
     public function comments() {
         return $this->hasMany(Comment::class);
     }
-    
+
 }
 
 
