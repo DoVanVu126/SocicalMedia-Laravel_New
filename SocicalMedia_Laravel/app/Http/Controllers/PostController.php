@@ -32,11 +32,13 @@ class PostController extends Controller
         }
 
         $posts->transform(function ($post) use ($userId) {
-            $post->imageurl = $post->imageurl
-                ? array_map(fn($img) => asset('storage/images/' . $img), explode(',', $post->imageurl))
-                : [];
-
-            $post->videourl = $post->videourl ? asset('storage/videos/' . $post->videourl) : null;
+            if ($post->imageurl) {
+                $post->imageurl = explode(',', $post->imageurl);
+                $post->imageurl = array_map(fn($img) => asset($img), $post->imageurl);
+            } else {
+                $post->imageurl = [];
+            }
+            $post->videourl = $post->videourl ? asset($post->videourl) : null;
 
             $reactionCounts = $post->reactions->groupBy('type')->map->count();
             $post->reaction_summary = $reactionCounts;
@@ -62,8 +64,8 @@ class PostController extends Controller
             'content' => 'required|string',
             'user_id' => 'required|exists:users,id',
             'visibility' => 'in:public,private',
-            'image.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
-            'video' => 'nullable|mimes:mp4,avi,mkv|max:10240',
+            'image.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:50120',
+            'video' => 'nullable|mimes:mp4,avi,mkv|max:100240',
         ]);
 
         try {
@@ -77,29 +79,34 @@ class PostController extends Controller
                 }
             }
 
-            $imageString = implode(',', $imagePaths);
+            // Gộp thành chuỗi nếu cần (cho TEXT)
+            $imageString = implode(',', $imagePaths); // lưu chuỗi: img1.jpg,img2.png,...
 
-            // Lưu video
-            $videoPath = null;
-            if ($request->hasFile('video')) {
-                $video = $request->file('video');
-                $videoName = Str::random(20) . '.' . $video->getClientOriginalExtension();
-                $video->storeAs('videos', $videoName, 'public');
-                $videoPath = $videoName;
-            }
+            // Lưu video (nếu có)
+            $videoPath = $request->hasFile('video')
+                ? basename($request->file('video')->store('videos', 'public'))
+                : null;
 
+            // Tạo bài viết
             $post = Post::create([
                 'user_id' => $request->user_id,
                 'content' => $request->content,
                 'imageurl' => $imageString,
                 'videourl' => $videoPath,
-                'status' => 'draft',
-                'visibility' => $request->visibility ?? 'public',
+                'visibility' => $request->visibility, // ✅ THÊM DÒNG NÀY
+                'status' => 'publish',
             ]);
 
-            return response()->json(['message' => 'Bài viết đã được tạo', 'post' => $post], 201);
+
+            return response()->json([
+                'message' => 'Bài viết đã được tạo',
+                'post' => $post,
+            ], 201);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Có lỗi xảy ra khi tạo bài viết', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'message' => 'Có lỗi xảy ra khi tạo bài viết',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -108,11 +115,15 @@ class PostController extends Controller
         $post = Post::findOrFail($id);
         $post->content = $request->input('content');
 
+        // Lấy danh sách ảnh cũ (nếu có)
         $existingImages = $post->imageurl ? explode(',', $post->imageurl) : [];
 
+        // Lưu ảnh mới nếu có
         $newImages = [];
         if ($request->hasFile('image')) {
-            $imageFiles = is_array($request->file('image')) ? $request->file('image') : [$request->file('image')];
+            $imageFiles = $request->file('image');
+            $imageFiles = is_array($imageFiles) ? $imageFiles : [$imageFiles];
+
             foreach ($imageFiles as $imgFile) {
                 $filename = Str::random(20) . '.' . $imgFile->getClientOriginalExtension();
                 $imgFile->storeAs('images', $filename, 'public');
@@ -120,8 +131,10 @@ class PostController extends Controller
             }
         }
 
+        // Gộp ảnh cũ + ảnh mới
         $post->imageurl = implode(',', array_merge($existingImages, $newImages));
 
+        // Xử lý xóa video cũ nếu được yêu cầu
         if ($request->has('remove_video') && $request->remove_video == '1') {
             if ($post->videourl) {
                 Storage::disk('public')->delete('videos/' . $post->videourl);
@@ -129,6 +142,7 @@ class PostController extends Controller
             }
         }
 
+        // Lưu video mới nếu có
         if ($request->hasFile('video')) {
             if ($post->videourl) {
                 Storage::disk('public')->delete('videos/' . $post->videourl);
@@ -141,7 +155,7 @@ class PostController extends Controller
 
         $post->save();
 
-        return response()->json(['message' => 'Bài viết đã được cập nhật']);
+        return response()->json(['message' => 'Post updated successfully']);
     }
 
     public function destroy($id)
