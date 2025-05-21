@@ -64,15 +64,15 @@ class PostController extends Controller
             'content' => 'required|string',
             'user_id' => 'required|exists:users,id',
             'visibility' => 'in:public,private',
-            'image.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:50120',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:50120',
             'video' => 'nullable|mimes:mp4,avi,mkv|max:100240',
         ]);
 
         try {
             // Lưu ảnh (nhiều ảnh)
             $imagePaths = [];
-            if ($request->hasFile('image')) {
-                foreach ($request->file('image') as $img) {
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $img) {
                     $filename = Str::random(20) . '.' . $img->getClientOriginalExtension();
                     $img->storeAs('images', $filename, 'public');
                     $imagePaths[] = $filename;
@@ -94,7 +94,7 @@ class PostController extends Controller
                 'imageurl' => $imageString,
                 'videourl' => $videoPath,
                 'visibility' => $request->visibility, // ✅ THÊM DÒNG NÀY
-                'status' => 'publish',
+                'status' => 'published',
             ]);
 
 
@@ -168,9 +168,15 @@ class PostController extends Controller
         // Xóa ảnh
         if ($post->imageurl) {
             foreach (explode(',', $post->imageurl) as $img) {
-                Storage::disk('public')->delete('images/' . $img);
+                $path = 'images/' . $img;
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                } else {
+                    \Log::warning("File không tồn tại: " . $path);
+                }
             }
         }
+
 
         // Xóa các comment liên quan (nếu có)
         if (method_exists($post, 'comments')) {
