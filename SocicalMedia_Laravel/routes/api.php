@@ -7,6 +7,8 @@ use App\Http\Controllers\StoryController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserSearchController;
+use App\Http\Controllers\AdminUserController;
+
 use App\Http\Controllers\ReactionController;
 
 // Các route công khai
@@ -29,6 +31,13 @@ Route::post('notifications/settings', [NotificationController::class, 'toggleSet
 Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
 
 
+
+ Route::get('users/list', [AdminUserController::class, 'list'])->name('api.admin.users.list');
+    Route::get('users/detail/{id}', [AdminUserController::class, 'detail'])->name('api.admin.users.detail');
+    Route::post('users/create', [AdminUserController::class, 'create'])->name('api.admin.users.create');
+    Route::post('users/update/{id}', [AdminUserController::class, 'update'])->name('api.admin.users.update');
+    Route::delete('users/delete/{id}', [AdminUserController::class, 'delete'])->name('api.admin.users.delete');
+
 //story
 Route::get('/stories', [StoryController::class, 'index']);
 Route::post('/stories', [StoryController::class, 'store']);
@@ -37,7 +46,11 @@ Route::delete('/stories/{id}', [StoryController::class, 'destroy']);
 
 
 Route::get('/users/search', [UserSearchController::class, 'suggest']);
+
 Route::get('/users/{id}', [UserSearchController::class, 'getUser']);
+
+Route::get('/users/find/{id}', [UserSearchController::class, 'getUser']);
+
 
 
 Route::get('/posts/{postId}/reactions', [ReactionController::class, 'index']);
