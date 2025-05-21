@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Comment;
+use Illuminate\Http\Request;
+
+class CommentController extends Controller
+{
+    protected $fillable = ['post_id', 'user_id', 'content'];
+
+    private $badWords = [
+        'chửi', 'đánh', 'giết', 'bạo lực',
+        'đụ', 'cặc', 'lồn', 'đĩ', 'điếm', 'đồ chó',
+        'ngu', 'đần', 'khùng', 'thằng điên', 'con điên', 'bố láo',
+        'bố đời', 'mẹ mày', 'địt', 'vãi', 'vãi lồn',
+        'fuck', 'shit', 'asshole', 'bitch', 'damn',
+        'son of a bitch', 'bastard', 'dick', 'pussy', 'slut',
+        'retard', 'moron', 'whore', 'cunt', 'jerk',
+        'scumbag', 'loser', 'freak', 'twat', 'cock',
+        'motherfucker', 'bullshit', 'fucker', 'shithead', 'douchebag',
+        'crap', 'suck', 'dumb', 'stupid', 'ugly',
+        'idiot', 'fatass', 'jackass', 'pig', 'skank',
+        'hoe', 'trashy', 'bloody', 'wanker', 'prick',
+        'arse', 'arsehole', 'knob', 'slag', 'nuts',
+        'retarded', 'spastic', 'dipshit', 'nutsack', 'tit',
+        'knobhead', 'bellend', 'minge', 'bugger', 'piss',
+        'twit', 'git', 'jerkwad', 'craphole', 'shitface'
+      ];
+
+    private function filterBadWords($text)
+    {
+        foreach ($this->badWords as $word) {
+            $pattern = '/\b' . preg_quote($word, '/') . '\b/iu';
+            $replacement = str_repeat('*', mb_strlen($word));
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+        return $text;
+    }
+
+    public function index($postId)
+    {
+        $comments = Comment::where('post_id', $postId)
+            ->with('user:id,username')
+            ->latest()
+            ->get();
+
+        return response()->json($comments);
+    }
+
+    public function store(Request $request, $postId)
+    {
+        $request->validate([
+            'content' => 'required|string',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $filteredContent = $this->filterBadWords($request->content);
+
+        $comment = Comment::create([
+            'post_id' => $postId,
+            'user_id' => $request->user_id,
+            'content' => $filteredContent,
+        ]);
+
+        return response()->json($comment, 201);
+    }
+}
