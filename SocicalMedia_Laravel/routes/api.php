@@ -25,6 +25,8 @@ Route::post('/posts/{id}/react', [PostController::class, 'react']);
 Route::delete('/posts/{id}/react', [PostController::class, 'removeReaction']);
 Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
 Route::post('/posts/{postId}/comments', [CommentController::class, 'store']);
+Route::put('/posts/{postId}/comments/{commentId}', [CommentController::class, 'update']); // Route để cập nhật bình luận
+Route::delete('/posts/{postId}/comments/{commentId}', [CommentController::class, 'destroy']); // Route để xóa bình luận
 Route::get('notifications/{userId}', [NotificationController::class, 'index']);
 Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
@@ -47,12 +49,8 @@ Route::delete('/stories/{id}', [StoryController::class, 'destroy']);
 
 
 Route::get('/users/search', [UserSearchController::class, 'suggest']);
-
 Route::get('/users/{id}', [UserSearchController::class, 'getUser']);
-
 Route::get('/users/find/{id}', [UserSearchController::class, 'getUser']);
-
-
 
 Route::get('/posts/{postId}/reactions', [ReactionController::class, 'index']);
 
