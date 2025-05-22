@@ -61,10 +61,10 @@ class PostController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'content' => 'required|string',
+            'content' => 'nullable|string',
             'user_id' => 'required|exists:users,id',
             'visibility' => 'in:public,private',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:50120',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:50120',
             'video' => 'nullable|mimes:mp4,avi,mkv|max:100240',
         ]);
 
