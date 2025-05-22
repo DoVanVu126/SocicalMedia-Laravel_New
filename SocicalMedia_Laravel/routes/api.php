@@ -8,8 +8,9 @@ use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserSearchController;
 use App\Http\Controllers\AdminUserController;
-
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\ReactionController;
+use App\Http\Controllers\UserController;
 
 // Các route công khai
 Route::post('/register', [AuthController::class, 'register']);
@@ -58,3 +59,14 @@ Route::get('/posts/{postId}/reactions', [ReactionController::class, 'index']);
 
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 
+
+// Follows
+Route::post('/follow', [FollowController::class, 'follow']);
+Route::post('/unfollow', [FollowController::class, 'unfollow']);
+Route::post('/follow-status', [FollowController::class, 'check']);
+Route::get('/users/{userId}/{type}', [FollowController::class, 'list']);
+// routes/api.php
+Route::get('/users/{id}/followers', [FollowController::class, 'getFollowers']);
+Route::get('/users/{id}/following', [FollowController::class, 'getFollowing']);
+
+Route::get('/users/{id}', [UserController::class, 'show']);

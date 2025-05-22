@@ -12,45 +12,78 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'username', 'email', 'password', 'phone', 'profilepicture', 'two_factor_enabled',
+        'username',
+        'email',
+        'password',
+        'phone',
+        'profilepicture',
+        'two_factor_enabled',
     ];
 
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'two_factor_enabled' => 'boolean',
     ];
 
     /**
-     * Check if email is valid or not
+     * Kiểm tra email đã tồn tại chưa
+     *
      * @param string $email
      * @return bool
      */
-    public static function checkEmail($email)
+    public static function checkEmail(string $email): bool
     {
-        $is_valid = true;
-        $user = User::where('email', $email)->first();
-        if ($user) {
-            $is_valid = false;
-        }
-        return $is_valid;
+        return !self::where('email', $email)->exists();
     }
 
     /**
-     * Check if phone number is valid or not
+     * Kiểm tra số điện thoại đã tồn tại chưa
+     *
      * @param string $phone
      * @return bool
      */
-    public static function checkPhone($phone)
+    public static function checkPhone(string $phone): bool
     {
-        $is_valid = true;
-        $user = User::where('phone', $phone)->first();
-        if ($user) {
-            $is_valid = false;
-        }
-        return $is_valid;
+        return !self::where('phone', $phone)->exists();
     }
 
+    /**
+     * Những người follow user này (người được follow)
+     */
+    public function followers()
+    {
+        return $this->hasMany(Follow::class, 'followed_id');
+    }
+
+    /**
+     * Những người user này đang follow (người follow)
+     */
+    public function followings()
+    {
+        return $this->hasMany(Follow::class, 'follower_id');
+    }
+
+    /**
+     * Kiểm tra user hiện tại có đang follow user $userId không
+     *
+     * @param int $userId
+     * @return bool
+     */
+    public function isFollowing(int $userId): bool
+    {
+        return $this->followings()->where('followed_id', $userId)->exists();
+    }
+
+    /**
+     * Các bài đăng của user
+     */
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
 }
