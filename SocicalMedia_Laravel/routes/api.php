@@ -68,3 +68,4 @@ Route::get('/users/{id}/followers', [FollowController::class, 'getFollowers']);
 Route::get('/users/{id}/following', [FollowController::class, 'getFollowing']);
 
 Route::get('/users/{id}', [UserController::class, 'show']);
+Route::put('/users/{id}/bio', [UserController::class, 'updateBio']);

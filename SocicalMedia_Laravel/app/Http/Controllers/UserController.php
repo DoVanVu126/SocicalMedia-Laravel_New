@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Http\Request;
 
 use App\Models\User;
 
@@ -26,4 +27,19 @@ class UserController extends Controller
             'posts' => $user->posts,
         ]);
     }
+
+    public function updateBio(Request $request, $id)
+{
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->json(['message' => 'User not found'], 404);
+    }
+
+    // Cập nhật bio
+    $user->bio = $request->input('bio');
+    $user->save();
+
+    return response()->json(['message' => 'Bio updated successfully']);
+}
 }
