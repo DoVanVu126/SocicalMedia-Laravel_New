@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FriendRequestController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
@@ -27,6 +28,8 @@ Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
 Route::post('/posts/{postId}/comments', [CommentController::class, 'store']);
 Route::put('/posts/{postId}/comments/{commentId}', [CommentController::class, 'update']); // Route để cập nhật bình luận
 Route::delete('/posts/{postId}/comments/{commentId}', [CommentController::class, 'destroy']); // Route để xóa bình luận
+Route::put('/posts/{postId}/comments/{commentId}', [CommentController::class, 'update']); // Route để cập nhật bình luận
+Route::delete('/posts/{postId}/comments/{commentId}', [CommentController::class, 'destroy']); // Route để xóa bình luận
 Route::get('notifications/{userId}', [NotificationController::class, 'index']);
 Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
@@ -41,6 +44,20 @@ Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
     Route::post('users/update/{id}', [AdminUserController::class, 'update'])->name('api.admin.users.update');
     Route::delete('users/delete/{id}', [AdminUserController::class, 'delete'])->name('api.admin.users.delete');
 
+Route::get('users/list', [AdminUserController::class, 'list'])->name('api.admin.users.list');
+Route::get('users/detail/{id}', [AdminUserController::class, 'detail'])->name('api.admin.users.detail');
+Route::post('users/create', [AdminUserController::class, 'create'])->name('api.admin.users.create');
+Route::post('users/update/{id}', [AdminUserController::class, 'update'])->name('api.admin.users.update');
+Route::delete('users/delete/{id}', [AdminUserController::class, 'delete'])->name('api.admin.users.delete');
+
+Route::get('friends/list', [FriendRequestController::class, 'getListFriend'])->name('api.admin.friends.list');
+Route::get('friends/request', [FriendRequestController::class, 'getListRequest'])->name('api.admin.friends.show.request');
+Route::get('friends/pending', [FriendRequestController::class, 'getListPending'])->name('api.admin.friends.show.pending');
+Route::get('friends/no-friends', [FriendRequestController::class, 'getAllNoFriend'])->name('api.admin.friends.no.friends');
+Route::post('friends/store', [FriendRequestController::class, 'store'])->name('api.admin.friends.store');
+Route::post('friends/accept', [FriendRequestController::class, 'accept'])->name('api.admin.friends.accept');
+Route::post('friends/reject', [FriendRequestController::class, 'reject'])->name('api.admin.friends.reject');
+
 //story
 Route::get('/stories', [StoryController::class, 'index']);
 Route::post('/stories', [StoryController::class, 'store']);
@@ -50,13 +67,24 @@ Route::delete('/stories/{id}', [StoryController::class, 'destroy']);
 
 Route::get('/users/search', [UserSearchController::class, 'suggest']);
 Route::get('/users/{id}', [UserSearchController::class, 'getUser']);
+Route::get('/users/{id}', [UserSearchController::class, 'getUser']);
 Route::get('/users/find/{id}', [UserSearchController::class, 'getUser']);
 
 Route::get('/posts/{postId}/reactions', [ReactionController::class, 'index']);
 
-
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 
+// Follows
+Route::post('/follow', [FollowController::class, 'follow']);
+Route::post('/unfollow', [FollowController::class, 'unfollow']);
+Route::post('/follow-status', [FollowController::class, 'check']);
+Route::get('/users/{userId}/{type}', [FollowController::class, 'list']);
+// routes/api.php
+Route::get('/users/{id}/followers', [FollowController::class, 'getFollowers']);
+Route::get('/users/{id}/following', [FollowController::class, 'getFollowing']);
+
+Route::get('/users/{id}', [UserController::class, 'show']);
+Route::put('/users/{id}/bio', [UserController::class, 'updateBio']);
 
 // Follows
 Route::post('/follow', [FollowController::class, 'follow']);
