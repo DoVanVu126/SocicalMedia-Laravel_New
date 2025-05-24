@@ -53,7 +53,6 @@ Route::get('users/detail/{id}', [AdminUserController::class, 'detail'])->name('a
 Route::post('users/create', [AdminUserController::class, 'create'])->name('api.admin.users.create');
 Route::post('users/update/{id}', [AdminUserController::class, 'update'])->name('api.admin.users.update');
 Route::delete('users/delete/{id}', [AdminUserController::class, 'delete'])->name('api.admin.users.delete');
-
 //story
 Route::get('/stories', [StoryController::class, 'index']);
 Route::post('/stories', [StoryController::class, 'store']);
