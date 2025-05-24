@@ -69,3 +69,5 @@ Route::get('/users/{id}/following', [FollowController::class, 'getFollowing']);
 
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::put('/users/{id}/bio', [UserController::class, 'updateBio']);
+Route::post('/users/{id}/profile-picture', [UserController::class, 'updateProfilePicture']);
+
