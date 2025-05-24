@@ -10,23 +10,88 @@ class CommentController extends Controller
     protected $fillable = ['post_id', 'user_id', 'content'];
 
     private $badWords = [
-        'chửi', 'đánh', 'giết', 'bạo lực',
-        'đụ', 'cặc', 'lồn', 'đĩ', 'điếm', 'đồ chó',
-        'ngu', 'đần', 'khùng', 'thằng điên', 'con điên', 'bố láo',
-        'bố đời', 'mẹ mày', 'địt', 'vãi', 'vãi lồn',
-        'fuck', 'shit', 'asshole', 'bitch', 'damn',
-        'son of a bitch', 'bastard', 'dick', 'pussy', 'slut',
-        'retard', 'moron', 'whore', 'cunt', 'jerk',
-        'scumbag', 'loser', 'freak', 'twat', 'cock',
-        'motherfucker', 'bullshit', 'fucker', 'shithead', 'douchebag',
-        'crap', 'suck', 'dumb', 'stupid', 'ugly',
-        'idiot', 'fatass', 'jackass', 'pig', 'skank',
-        'hoe', 'trashy', 'bloody', 'wanker', 'prick',
-        'arse', 'arsehole', 'knob', 'slag', 'nuts',
-        'retarded', 'spastic', 'dipshit', 'nutsack', 'tit',
-        'knobhead', 'bellend', 'minge', 'bugger', 'piss',
-        'twit', 'git', 'jerkwad', 'craphole', 'shitface'
-      ];
+        'chửi',
+        'đánh',
+        'giết',
+        'bạo lực',
+        'đụ',
+        'cặc',
+        'lồn',
+        'đĩ',
+        'điếm',
+        'đồ chó',
+        'ngu',
+        'đần',
+        'khùng',
+        'thằng điên',
+        'con điên',
+        'bố láo',
+        'bố đời',
+        'mẹ mày',
+        'địt',
+        'vãi',
+        'vãi lồn',
+        'fuck',
+        'shit',
+        'asshole',
+        'bitch',
+        'damn',
+        'son of a bitch',
+        'bastard',
+        'dick',
+        'pussy',
+        'slut',
+        'retard',
+        'moron',
+        'whore',
+        'cunt',
+        'jerk',
+        'scumbag',
+        'loser',
+        'freak',
+        'twat',
+        'cock',
+        'motherfucker',
+        'bullshit',
+        'fucker',
+        'shithead',
+        'douchebag',
+        'crap',
+        'suck',
+        'dumb',
+        'stupid',
+        'ugly',
+        'idiot',
+        'fatass',
+        'jackass',
+        'pig',
+        'skank',
+        'hoe',
+        'trashy',
+        'bloody',
+        'wanker',
+        'prick',
+        'arse',
+        'arsehole',
+        'knob',
+        'slag',
+        'nuts',
+        'retarded',
+        'spastic',
+        'dipshit',
+        'nutsack',
+        'tit',
+        'knobhead',
+        'bellend',
+        'minge',
+        'bugger',
+        'piss',
+        'twit',
+        'git',
+        'jerkwad',
+        'craphole',
+        'shitface'
+    ];
 
     private function filterBadWords($text)
     {
@@ -64,5 +129,43 @@ class CommentController extends Controller
         ]);
 
         return response()->json($comment, 201);
+    }
+    public function update(Request $request, $postId, $commentId)
+    {
+        $request->validate([
+            'content' => 'required|string|max:1000',
+            'user_id' => 'required|exists:users,id', 
+        ]);
+        $comment = Comment::where('id', $commentId)
+            ->where('post_id', $postId)
+            ->first();
+        if (!$comment) {
+            return response()->json(['message' => 'Bình luận không tìm thấy.'], 404);
+        }
+        if ($comment->user_id != $request->user_id) {
+            return response()->json(['message' => 'Bạn không có quyền sửa bình luận này.'], 403);
+        }
+
+        $filteredContent = $this->filterBadWords($request->content);
+        $comment->content = $filteredContent;
+        $comment->save();
+        return response()->json($comment->load('user:id,username'), 200);
+    }
+    public function destroy(Request $request, $postId, $commentId)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+        $comment = Comment::where('id', $commentId)
+            ->where('post_id', $postId)
+            ->first();
+        if (!$comment) {
+            return response()->json(['message' => 'Bình luận không tìm thấy.'], 404);
+        }
+        if ($comment->user_id != $request->user_id) {
+            return response()->json(['message' => 'Bạn không có quyền xóa bình luận này.'], 403);
+        }
+        $comment->delete();
+        return response()->json(['message' => 'Bình luận đã được xóa thành công.'], 200);
     }
 }
