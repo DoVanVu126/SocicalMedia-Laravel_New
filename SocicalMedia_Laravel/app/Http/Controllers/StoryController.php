@@ -6,29 +6,51 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use App\Models\Story;
+use App\Models\Follow;
 
 class StoryController extends Controller
 {
     public function index(Request $request)
-    {
+{
+    try {
         $userId = $request->query('user_id');
 
-        $stories = Story::with('user')
-            ->where(function ($query) use ($userId) {
-                $query->where('visibility', 'public')
-                      ->where('expires_at', '>', now());
+        $query = Story::with(['user' => function ($query) {
+            $query->select('id', 'username', 'profilepicture');
+        }])
+        ->where('expires_at', '>', now())
+        ->latest();
 
-                if ($userId) {
-                    $query->orWhere(function ($q) use ($userId) {
-                        $q->where('user_id', $userId);
-                    });
-                }
-            })
-            ->latest()
-            ->get();
+        if ($userId) {
+            // Get IDs of users the logged-in user follows
+            $followedUserIds = Follow::where('follower_id', $userId)
+                ->pluck('followed_id')
+                ->toArray();
 
-        return response()->json($stories);
+            // Include the user's own stories
+            $followedUserIds[] = $userId;
+
+            // Filter stories by followed users and own stories
+            $query->where(function ($q) use ($userId, $followedUserIds) {
+                $q->whereIn('user_id', $followedUserIds)
+                  ->where('visibility', 'public') // Only public stories for followed users
+                  ->orWhere(function ($q) use ($userId) {
+                      $q->where('user_id', $userId)
+                        ->where('visibility', 'private'); // Private stories only for the creator
+                  });
+            });
+        } else {
+            // For non-logged-in users, return only public stories
+            $query->where('visibility', 'public');
+        }
+
+        $stories = $query->get();
+
+        return response()->json($stories, 200);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Unable to fetch stories'], 500);
     }
+}
 
     public function store(Request $request)
     {
