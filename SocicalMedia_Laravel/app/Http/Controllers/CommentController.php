@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\Post;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class CommentController extends Controller
@@ -43,7 +45,7 @@ class CommentController extends Controller
     'douchecanoe', 'fucknugget', 'shitgibbon', 'jerkoff', 'balllicker', 'crapweasel'
 ];
 
-    private function filterBadWords($text)
+  private function filterBadWords($text)
     {
         foreach ($this->badWords as $word) {
             $pattern = '/\b' . preg_quote($word, '/') . '\b/iu';
@@ -78,17 +80,31 @@ class CommentController extends Controller
             'content' => $filteredContent,
         ]);
 
+        // Create notification for post owner
+        $post = Post::find($postId);
+        if ($post && $post->user_id != $request->user_id) {
+            $user = User::find($request->user_id);
+            NotificationController::createNotification(
+                $post->user_id,
+                "{$user->username} đã bình luận bài viết của bạn.",
+                $postId
+            );
+        }
+
         return response()->json($comment, 201);
     }
+
     public function update(Request $request, $postId, $commentId)
     {
         $request->validate([
             'content' => 'required|string|max:1000',
             'user_id' => 'required|exists:users,id',
         ]);
+
         $comment = Comment::where('id', $commentId)
             ->where('post_id', $postId)
             ->first();
+
         if (!$comment) {
             return response()->json(['message' => 'Bình luận không tìm thấy.'], 404);
         }
@@ -101,21 +117,26 @@ class CommentController extends Controller
         $comment->save();
         return response()->json($comment->load('user:id,username'), 200);
     }
+
     public function destroy(Request $request, $postId, $commentId)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
         ]);
+
         $comment = Comment::where('id', $commentId)
             ->where('post_id', $postId)
             ->first();
+
         if (!$comment) {
             return response()->json(['message' => 'Bình luận không tìm thấy.'], 404);
         }
         if ($comment->user_id != $request->user_id) {
             return response()->json(['message' => 'Bạn không có quyền xóa bình luận này.'], 403);
         }
+
         $comment->delete();
         return response()->json(['message' => 'Bình luận đã được xóa thành công.'], 200);
     }
 }
+

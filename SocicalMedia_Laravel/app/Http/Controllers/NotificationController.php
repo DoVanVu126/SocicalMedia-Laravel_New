@@ -3,51 +3,105 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-
-
+use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    public function index($userId)
+    // No auth middleware in constructor to match public routes
+    public function index(Request $request, $userId)
     {
-        $notifications = Notification::where('user_id', $userId)->latest()->get();
+        // Validate userId exists in users table
+        if (!User::where('id', $userId)->exists()) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $notifications = Notification::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
         return response()->json($notifications);
     }
 
-    public function markAsRead($id)
+    public function markAsRead(Request $request, $id)
     {
-        $notification = Notification::findOrFail($id);
-        $notification->update(['is_read' => true]);
+        $notification = Notification::where('id', $id)->first();
+        if (!$notification) {
+            return response()->json(['message' => 'Notification not found'], 404);
+        }
 
-        return response()->json(['message' => 'Đã đánh dấu đã đọc']);
+        // Optional: Validate user_id if you want to restrict access
+        $userId = $request->input('user_id');
+        if ($userId && $notification->user_id != $userId) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $notification->is_read = 1;
+        $notification->save();
+        return response()->json(['message' => 'Marked as read']);
     }
 
     public function markAllAsRead(Request $request)
     {
         $userId = $request->input('user_id');
+        if (!User::where('id', $userId)->exists()) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
 
         Notification::where('user_id', $userId)
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
+            ->where('is_read', 0)
+            ->update(['is_read' => 1]);
+        return response()->json(['message' => 'All notifications marked as read']);
+    }
 
-        return response()->json(['message' => 'Tất cả thông báo đã được đánh dấu đã đọc']);
+    public function destroy(Request $request, $id)
+    {
+        $notification = Notification::where('id', $id)->first();
+        if (!$notification) {
+            return response()->json(['message' => 'Notification not found'], 404);
+        }
+
+        // Optional: Validate user_id if you want to restrict access
+        $userId = $request->input('user_id');
+        if ($userId && $notification->user_id != $userId) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $notification->delete();
+        return response()->json(['message' => 'Notification deleted']);
     }
 
     public function toggleSettings(Request $request)
     {
-        $user = User::findOrFail($request->input('user_id'));
-        $user->update(['notifications_enabled' => $request->boolean('enabled')]);
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'enabled' => 'required|boolean',
+        ]);
 
-        return response()->json(['message' => 'Cập nhật cài đặt thành công']);
+        $user = User::find($request->user_id);
+        $user->notifications_enabled = $request->enabled;
+        $user->save();
+        return response()->json(['message' => 'Notification settings updated']);
     }
 
-    public function destroy($id)
+    public static function createNotification($userId, $content, $notifiableId)
     {
-        Notification::findOrFail($id)->delete();
-        return response()->json(['message' => 'Thông báo đã được xóa']);
+        return Notification::create([
+            'user_id' => $userId,
+            'notification_content' => $content,
+            'notifiable_id' => $notifiableId,
+            'is_read' => 0,
+        ]);
+    }
+
+    public function getUnread(Request $request, $userId)
+    {
+        if (!User::where('id', $userId)->exists()) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $unreadCount = Notification::where('user_id', $userId)
+            ->where('is_read', 0)
+            ->count();
+        return response()->json(['unread_count' => $unreadCount]);
     }
 }
-
