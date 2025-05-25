@@ -63,7 +63,6 @@ Route::delete('/stories/{id}', [StoryController::class, 'destroy']);
 Route::get('/users/search', [UserSearchController::class, 'suggest']);
 Route::get('/users/{id}', [UserSearchController::class, 'getUser']);
 Route::get('/users/find/{id}', [UserSearchController::class, 'getUser']);
-
 Route::get('/posts/{postId}/reactions', [ReactionController::class, 'index']);
 
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
