@@ -35,7 +35,6 @@ class UserController extends Controller
             'has_active_stories' => $hasActiveStories, // Added to indicate active stories
         ]);
     }
-
     public function updateBio(Request $request, $id)
     {
         $user = User::find($id);
