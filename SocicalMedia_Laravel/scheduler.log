@@ -1,0 +1,4 @@
+
+  2025-05-26 04:49:50 Running ["artisan" stories:delete-expired] ........................................ 1,230ms DONE
+  ⇂ "C:\wamp64\bin\php\php8.2.18\php.exe" "artisan" stories:delete-expired > "NUL" 2>&1  
+
