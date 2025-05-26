@@ -29,12 +29,10 @@ Route::post('/posts/{postId}/comments', [CommentController::class, 'store']);
 Route::put('/posts/{postId}/comments/{commentId}', [CommentController::class, 'update']); // Route để cập nhật bình luận
 Route::delete('/posts/{postId}/comments/{commentId}', [CommentController::class, 'destroy']); // Route để xóa bình luận
 Route::get('notifications/{userId}', [NotificationController::class, 'index']);
-Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead']); // Added
+Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 Route::post('notifications/settings', [NotificationController::class, 'toggleSettings']);
 Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
-Route::get('notifications/unread/{userId}', [NotificationController::class, 'getUnread']);
-
 
 Route::get('users/list', [AdminUserController::class, 'list'])->name('api.admin.users.list');
 Route::get('users/detail/{id}', [AdminUserController::class, 'detail'])->name('api.admin.users.detail');
