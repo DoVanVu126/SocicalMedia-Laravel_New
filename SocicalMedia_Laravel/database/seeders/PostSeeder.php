@@ -14,9 +14,9 @@ class PostSeeder extends Seeder
         // Lấy tất cả ID của user hiện có
         $userIds = User::pluck('id')->toArray();
 
-        for ($i = 1; $i <= 20; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             Post::create([
-                'user_id' => 1, // Lấy ngẫu nhiên một user_id
+                'user_id' => 9, // Lấy ngẫu nhiên một user_id
                 'content' => 'Áo số ' . $i,
                 'imageurl' => rand(1, 10) . '.jpg',
                 'videourl' => null,
