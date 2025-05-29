@@ -20,6 +20,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 
 // Posts
 Route::get('/posts', [PostController::class, 'index']);
+Route::get('/users/{userId}/posts', [PostController::class, 'getUserPosts']);
 Route::get('/posts/{id}', [PostController::class, 'show']);
 Route::post('/posts', [PostController::class, 'store']);
 Route::put('/posts/{id}', [PostController::class, 'update']);
