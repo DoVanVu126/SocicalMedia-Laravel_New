@@ -16,8 +16,8 @@ class PostSeeder extends Seeder
 
         for ($i = 1; $i <= 10; $i++) {
             Post::create([
-                'user_id' => 9, // Lấy ngẫu nhiên một user_id
-                'content' => 'Áo số ' . $i,
+                'user_id' => $userIds[array_rand($userIds)],
+                'content' => 'Xe thứ ' . $i,
                 'imageurl' => rand(1, 10) . '.jpg',
                 'videourl' => null,
                 'status' => 'published',
