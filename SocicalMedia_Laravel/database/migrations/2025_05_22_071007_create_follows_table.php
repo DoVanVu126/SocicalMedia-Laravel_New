@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('follows', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('follower_id')->constrained('users')->onDelete('cascade');
-    $table->foreignId('followed_id')->constrained('users')->onDelete('cascade');
-    $table->timestamps();
+      Schema::create('follows', function (Blueprint $table) {
+            $table->increments('id'); // id: AUTO_INCREMENT, primary key
+            $table->integer('follower_id'); // follower_id: int(11), not null
+            $table->integer('followed_id'); // followed_id: int(11), not null
+            $table->timestamp('created_at')->nullable(); // created_at: timestamp, NULL
+            $table->timestamp('updated_at')->nullable(); // updated_at: timestamp, NULL
 
-    $table->unique(['follower_id', 'followed_id']); // tránh follow trùng
-});
+            // Nếu muốn index:
+            $table->index('follower_id');
+            $table->index('followed_id');
+        });
 
     }
 
