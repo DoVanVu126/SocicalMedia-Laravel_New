@@ -5,13 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class NotificationController extends Controller
 {
-    // No auth middleware in constructor to match public routes
     public function index(Request $request, $userId)
     {
-        // Validate userId exists in users table
         if (!User::where('id', $userId)->exists()) {
             return response()->json(['message' => 'User not found'], 404);
         }
@@ -29,7 +28,6 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Notification not found'], 404);
         }
 
-        // Optional: Validate user_id if you want to restrict access
         $userId = $request->input('user_id');
         if ($userId && $notification->user_id != $userId) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -60,7 +58,6 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Notification not found'], 404);
         }
 
-        // Optional: Validate user_id if you want to restrict access
         $userId = $request->input('user_id');
         if ($userId && $notification->user_id != $userId) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -83,12 +80,14 @@ class NotificationController extends Controller
         return response()->json(['message' => 'Notification settings updated']);
     }
 
-    public static function createNotification($userId, $content, $notifiableId)
+    public static function createNotification($userId, $content, $notifiableId, $notifiableType = 'post')
     {
+        Log::info("Creating notification for user_id: {$userId}, content: {$content}, notifiable_id: {$notifiableId}, notifiable_type: {$notifiableType}");
         return Notification::create([
             'user_id' => $userId,
             'notification_content' => $content,
             'notifiable_id' => $notifiableId,
+            'notifiable_type' => $notifiableType,
             'is_read' => 0,
         ]);
     }
