@@ -59,6 +59,16 @@ class PostController extends Controller
             'perPage' => $posts->perPage(),         // số bài viết mỗi trang (nếu muốn dùng)
         ]);
     }
+
+
+    public function show($id)
+    {
+        $post = Post::find($id);
+        if (!$post) {
+            return response()->json(['message' => 'Không tìm thấy bài viết'], 404);
+        }
+        return response()->json($post);
+    }
     public function getUserPosts(Request $request) // Đổi tên hàm
     {
         $userId = $request->query('user_id'); // Hoặc lấy từ route parameter nếu bạn muốn /api/users/{userId}/posts
@@ -99,14 +109,6 @@ class PostController extends Controller
         return response()->json($posts, 200);
     }
 
-    public function show($id)
-    {
-        $post = Post::find($id);
-        if (!$post) {
-            return response()->json(['message' => 'Không tìm thấy bài viết'], 404);
-        }
-        return response()->json($post);
-    }
     public function store(Request $request)
     {
         $request->validate([
