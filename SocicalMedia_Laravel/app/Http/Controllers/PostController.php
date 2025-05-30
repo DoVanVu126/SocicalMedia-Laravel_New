@@ -59,7 +59,45 @@ class PostController extends Controller
             'perPage' => $posts->perPage(),         // số bài viết mỗi trang (nếu muốn dùng)
         ]);
     }
+    public function getUserPosts(Request $request) // Đổi tên hàm
+    {
+        $userId = $request->query('user_id'); // Hoặc lấy từ route parameter nếu bạn muốn /api/users/{userId}/posts
+        $posts = Post::with(['user', 'reactions'])
+            ->where(function ($query) use ($userId) {
+                $query->where('visibility', 'public');
 
+                if ($userId) {
+                    $query->orWhere(function ($q) use ($userId) {
+                        $q->where('visibility', 'private')->where('user_id', $userId);
+                    });
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->get(); // Không dùng paginate()
+
+        if ($posts->isEmpty()) {
+            return response()->json(['message' => 'Không có bài viết nào'], 200);
+        }
+
+        $posts->transform(function ($post) use ($userId) {
+            if ($post->imageurl) {
+                $post->imageurl = explode(',', $post->imageurl);
+                $post->imageurl = array_map(fn($img) => asset($img), $post->imageurl);
+            } else {
+                $post->imageurl = [];
+            }
+
+            $post->videourl = $post->videourl ? asset(basename($post->videourl)) : null;
+
+            $reactionCounts = $post->reactions->groupBy('type')->map->count();
+            $post->reaction_summary = $reactionCounts;
+            $post->user_reaction = $userId ? $post->reactions->firstWhere('user_id', $userId) : null;
+
+            return $post;
+        });
+
+        return response()->json($posts, 200);
+    }
 
     public function show($id)
     {
@@ -69,7 +107,6 @@ class PostController extends Controller
         }
         return response()->json($post);
     }
-
     public function store(Request $request)
     {
         $request->validate([

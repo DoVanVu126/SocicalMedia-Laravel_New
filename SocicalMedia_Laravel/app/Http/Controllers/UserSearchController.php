@@ -16,7 +16,7 @@ public function suggest(Request $request)
 
     $users = User::select('id', 'username', 'profilepicture')
         ->where('username', 'LIKE', "%{$query}%")
-        ->orderBy('username')
+        ->orderByRaw('LOWER(username)')
         ->limit(5)
         ->get();
 

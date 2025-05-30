@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Follow;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class FollowController extends Controller
 {
@@ -39,10 +40,12 @@ class FollowController extends Controller
         User::where('id', $followerId)->increment('following_count');
 
         $follower = User::find($followerId);
+        Log::info("Follow notification for followed_id: {$followedId}, follower_id: {$followerId}");
         NotificationController::createNotification(
             $followedId,
             "{$follower->username} đã bắt đầu theo dõi bạn.",
-            $followerId
+            $followerId,
+            'user'
         );
 
         return response()->json(['message' => 'Đã follow thành công']);
