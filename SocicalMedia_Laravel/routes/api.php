@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\FavouriteController;
 use App\Http\Controllers\FriendRequestController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\SavePostController;
 use App\Http\Controllers\StoryController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserSearchController;
@@ -55,6 +57,13 @@ Route::get('/users/{userId}/{type}', [FollowController::class, 'list']);
 Route::get('/users/{id}/followers', [FollowController::class, 'getFollowers']);
 Route::get('/users/{id}/following', [FollowController::class, 'getFollowing']);
 
+// Admin Users
+Route::get('/users/list', [AdminUserController::class, 'list'])->name('api.admin.users.list');
+Route::get('/users/detail/{id}', [AdminUserController::class, 'detail'])->name('api.admin.users.detail');
+Route::post('/users/create', [AdminUserController::class, 'create'])->name('api.admin.users.create');
+Route::post('/users/update/{id}', [AdminUserController::class, 'update'])->name('api.admin.users.update');
+Route::delete('/users/delete/{id}', [AdminUserController::class, 'delete'])->name('api.admin.users.delete');
+
 // Users
 Route::get('/users/search', [UserSearchController::class, 'suggest']);
 Route::get('/users/{id}', [UserSearchController::class, 'getUser']);
@@ -62,13 +71,6 @@ Route::get('/users/find/{id}', [UserSearchController::class, 'getUser']);
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::put('/users/{id}/bio', [UserController::class, 'updateBio']);
 Route::post('/users/{id}/profile-picture', [UserController::class, 'updateProfilePicture']);
-
-// Admin Users
-Route::get('/users/list', [AdminUserController::class, 'list'])->name('api.admin.users.list');
-Route::get('/users/detail/{id}', [AdminUserController::class, 'detail'])->name('api.admin.users.detail');
-Route::post('/users/create', [AdminUserController::class, 'create'])->name('api.admin.users.create');
-Route::post('/users/update/{id}', [AdminUserController::class, 'update'])->name('api.admin.users.update');
-Route::delete('/users/delete/{id}', [AdminUserController::class, 'delete'])->name('api.admin.users.delete');
 
 // Friends
 Route::get('/friends/list', [FriendRequestController::class, 'getListFriend'])->name('api.admin.friends.list');
@@ -84,3 +86,13 @@ Route::get('/stories', [StoryController::class, 'index']);
 Route::post('/stories', [StoryController::class, 'store']);
 Route::put('/stories/{id}', [StoryController::class, 'update']);
 Route::delete('/stories/{id}', [StoryController::class, 'destroy']);
+
+Route::get('/post/favorites/list', [FavouriteController::class, 'list'])->name('api.favorites.post.list');
+Route::post('/post/favorites/store', [FavouriteController::class, 'createOrDelete'])->name('api.favorites.post.store');
+
+Route::get('/post/saves/list', [SavePostController::class, 'list'])->name('api.saves.post.list');
+Route::post('/post/saves/store', [SavePostController::class, 'createOrDelete'])->name('api.saves.post.store');
+
+Route::post('/post/share', [PostController::class, 'sharePost'])->name('api.post.share');
+
+Route::get('/logout', [AuthController::class, 'logout']);

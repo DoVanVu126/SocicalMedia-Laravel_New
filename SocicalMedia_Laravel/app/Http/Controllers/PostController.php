@@ -314,4 +314,22 @@ class PostController extends Controller
             'reaction_summary' => $summary,
         ]);
     }
+
+    public function sharePost(Request $request)
+    {
+        $post_id = $request->input('post_id');
+        $user_id = $request->input('user_id');
+
+        $post = Post::find($post_id);
+        if (!$post) {
+            return response()->json(['message' => 'Bài viết không tồn tại'], 404);
+        }
+
+       $clone_post = $post->replicate();
+       $clone_post->user_id = $user_id;
+       $clone_post->parent_id = $post_id;
+       $clone_post->save();
+
+       return response()->json(['message' => 'Bài viết được chia sử dụng', 'post' => $clone_post], 200);
+    }
 }

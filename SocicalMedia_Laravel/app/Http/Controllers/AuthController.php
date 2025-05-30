@@ -87,6 +87,9 @@ class AuthController extends Controller
             return response()->json(['message' => 'OTP đã hết hạn'], 401);
         }
 
+        $user->is_online = true;
+        $user->last_online_at = now();
+
         // Xóa OTP sau khi dùng
         $user->otp_code = null;
         $user->otp_expires_at = null;
@@ -101,7 +104,16 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'profilepicture' => $user->profilepicture,
                 'phone' => $user->phone,
+                'role' => $user->role,
             ]
         ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->is_online = false;
+        $request->user()->last_online_at = now();
+        $request->user()->save();
+        return response()->json(['message' => 'Đăng xuat thanh cong']);
     }
 }

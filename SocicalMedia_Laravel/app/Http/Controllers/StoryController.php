@@ -74,62 +74,62 @@ class StoryController extends Controller
         return response()->json(['message' => 'Story đã được tạo', 'story' => $story], 201);
     }
 
- public function update(Request $request, $id)
-{
-    $story = Story::find($id);
+    public function update(Request $request, $id)
+    {
+        $story = Story::find($id);
 
-    if (!$story) {
-        return response()->json(['error' => 'Story không tồn tại hoặc đã bị xóa'], 404);
-    }
-
-    $validated = $request->validate([
-        'user_id' => 'required|exists:users,id',
-        'content' => 'required|string|max:1000|not_regex:/^\s*$/',
-        'visibility' => 'required|in:public,private',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        'video' => 'nullable|mimes:mp4,avi,mkv|max:10240',
-        'remove_video' => 'nullable|in:1',
-    ]);
-
-    if ($story->user_id != $validated['user_id']) {
-        return response()->json(['error' => 'Bạn không có quyền chỉnh sửa story này'], 403);
-    }
-
-    // ❌ Không kiểm tra updated_at nữa
-
-    $story->content = trim($validated['content']);
-    $story->visibility = $validated['visibility'];
-
-    // Cập nhật ảnh mới
-    if ($request->hasFile('image')) {
-        if ($story->imageurl) {
-            Storage::disk('public')->delete('story_images/' . $story->imageurl);
+        if (!$story) {
+            return response()->json(['error' => 'Story không tồn tại hoặc đã bị xóa'], 404);
         }
-        $imagePath = $request->file('image')->store('story_images', 'public');
-        $story->imageurl = basename($imagePath);
-    }
 
-    // Cập nhật hoặc xóa video
-    if ($request->filled('remove_video') && $request->input('remove_video') === '1') {
-        if ($story->videourl) {
-            Storage::disk('public')->delete('story_videos/' . $story->videourl);
-            $story->videourl = null;
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'content' => 'required|string|max:1000|not_regex:/^\s*$/',
+            'visibility' => 'required|in:public,private',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'video' => 'nullable|mimes:mp4,avi,mkv|max:10240',
+            'remove_video' => 'nullable|in:1',
+        ]);
+
+        if ($story->user_id != $validated['user_id']) {
+            return response()->json(['error' => 'Bạn không có quyền chỉnh sửa story này'], 403);
         }
-    } elseif ($request->hasFile('video')) {
-        if ($story->videourl) {
-            Storage::disk('public')->delete('story_videos/' . $story->videourl);
+
+        // ❌ Không kiểm tra updated_at nữa
+
+        $story->content = trim($validated['content']);
+        $story->visibility = $validated['visibility'];
+
+        // Cập nhật ảnh mới
+        if ($request->hasFile('image')) {
+            if ($story->imageurl) {
+                Storage::disk('public')->delete('story_images/' . $story->imageurl);
+            }
+            $imagePath = $request->file('image')->store('story_images', 'public');
+            $story->imageurl = basename($imagePath);
         }
-        $videoPath = $request->file('video')->store('story_videos', 'public');
-        $story->videourl = basename($videoPath);
+
+        // Cập nhật hoặc xóa video
+        if ($request->filled('remove_video') && $request->input('remove_video') === '1') {
+            if ($story->videourl) {
+                Storage::disk('public')->delete('story_videos/' . $story->videourl);
+                $story->videourl = null;
+            }
+        } elseif ($request->hasFile('video')) {
+            if ($story->videourl) {
+                Storage::disk('public')->delete('story_videos/' . $story->videourl);
+            }
+            $videoPath = $request->file('video')->store('story_videos', 'public');
+            $story->videourl = basename($videoPath);
+        }
+
+        $story->save();
+
+        return response()->json([
+            'message' => 'Story đã được cập nhật',
+            'story' => $story,
+        ], 200);
     }
-
-    $story->save();
-
-    return response()->json([
-        'message' => 'Story đã được cập nhật',
-        'story' => $story,
-    ], 200);
-}
 
 
     public function destroy(Request $request, $id)
